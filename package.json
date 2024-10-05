@@ -1,0 +1,25 @@
+{
+  "name": "gpt",
+  "version": "1.0.0",
+  "description": "This is a simple code chat ai with whatsapp bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node handler.js --qr"
+  },
+  "keywords": [
+    "chagpt",
+    "chatbot",
+    "whatsapp",
+    "zyd",
+    "gpt"
+  ],
+  "author": "Muhammad Adriansyah",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.8",
+    "groq-sdk": "^0.7.0"
+  },
+  "devDependencies": {
+    "qrcode-terminal": "^0.12.0"
+  }
+}
