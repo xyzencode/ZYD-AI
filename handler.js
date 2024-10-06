@@ -1,10 +1,12 @@
 /**
  * @author  Muhammad Adriansyah - Zayden
  * @description Simple Code Chat AI With Whatsapp API Non Official
+ * @version 1.1.0
  * @copyright 2024
  * @license MIT
  */
 
+require("dotenv").config();
 const {
   useMultiFileAuthState,
   default: makeWASocket,
@@ -20,9 +22,9 @@ const NodeCache = require("node-cache");
 const Groq = require("groq-sdk");
 const Boom = require("@hapi/boom");
 
-// Get Apikey https://console.groq.com/keys
+// Set Apikey Check Env
 const groq = new Groq({
-  apiKey: "",
+  apiKey: process.env.GROQ_APIKEY,
 });
 
 /**
@@ -42,8 +44,8 @@ const store = makeInMemoryStore({ logger });
  * @type {import("@whiskeysockets/baileys").Baileys}
  */
 async function Handler() {
-  const { state, saveCreds } = await useMultiFileAuthState("session");
-  const msgRetryCounterCache = new NodeCache();
+  const { state, saveCreds } = await useMultiFileAuthState("session"); // load the credentials from the session folder
+  const msgRetryCounterCache = new NodeCache(); // cache for message retries
 
   const sock = makeWASocket({
     version: [2, 3000, 1015901307], // version of WhatsApp Web to use
@@ -73,7 +75,7 @@ async function Handler() {
       const jid = jidNormalizedUser(key.remoteJid);
       const msg = await store.loadMessage(jid, key.id);
       return msg?.message || list || "";
-    },
+    }, // get a message from the store
   });
 
   store.bind(sock.ev); // bind the store to the client
@@ -154,6 +156,7 @@ async function Handler() {
 
   sock.ev.on("creds.update", saveCreds); // save the credentials when they are updated
 
+  // Logic to send message
   sock.ev.on("messages.upsert", async (msg) => {
     if (msg.messages.length === 0) return;
     let messages = msg.messages[0]; // get the message
@@ -161,42 +164,94 @@ async function Handler() {
 
     let reply = (text) => sock.sendMessage(jid, { text }, { quoted: messages }); // reply to the message
 
-    if (msg.messages[0].key.fromMe) return;
-    let chatAI = await ChatAI(msg.messages[0].message.conversation);
-    reply(chatAI);
+    if (msg.messages[0].key.fromMe) return; // ignore messages from self
 
-    console.log("====================================");
-    console.log("By : " + msg.messages[0].key.remoteJid);
-    console.log("Message : " + msg.messages[0].message.conversation);
-    console.log("Reply : " + chatAI);
-    console.log("Date : " + new Date().toLocaleString());
-    console.log("====================================\n\n");
+    // Logic to Chat AI
+    if (msg.messages[0].message?.conversation) {
+      // Check API Key
+      if (process.env.GROQ_APIKEY === undefined) {
+        new Error("Please provide GROQ_APIKEY in .env file");
+        process.exit(1);
+      }
+
+      if (process.env.GROUP && jid.endsWith("@g.us")) return;
+
+      let chatAI = await ChatAI(msg.messages[0].message.conversation); // Chat AI
+      reply(chatAI);
+
+      // Log Chat AI
+      console.log("====================================");
+      console.log("By : " + msg.messages[0].key.remoteJid);
+      console.log("Message : " + msg.messages[0].message.conversation);
+      console.log("Reply : " + chatAI);
+      console.log("Date : " + new Date().toLocaleString());
+      console.log("====================================\n\n");
+    }
   });
 }
 
-Handler();
+// Run Handler
+(function () {
+  Handler();
+})();
 
 // Sleep function
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Get Date
+function getDate() {
+  const options = { timeZone: "Asia/Jakarta", hour12: false };
+  const now = new Date().toLocaleString("en-US", options);
+  const date = new Date(now);
+
+  const month = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+  const monthName = month[date.getMonth()];
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const dayName = days[date.getDay()];
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  const timeString = `${hours}:${minutes}:${seconds}`;
+  const dayString = `${dayName}`;
+
+  return `${dayString} ${timeString} Bulan ${monthName}`;
+}
+
+// Chat AI
 async function ChatAI(text) {
+  const { version } = await JSON.parse(fs.readFileSync("package.json")); // Get Version
+
   const chatCompletion = await groq.chat.completions.create({
     messages: [
       {
         role: "system",
-        content:
-          "kamu adalah seorang manusia yang pintar dan cerdas, dan kamu adalah manusia yang sering membantu orang lain dengan baik, nama kamu adalah ZYD-AI Generasi ke 1.0, owner kamu adalah Muhammad Adriansyah dia seorang arsitek handal dan juga seorang programmer yang hebat, dia adalah orang yang sangat baik dan juga sangat ramah, dia adalah orang yang sangat pintar dan juga sangat cerdas, dia adalah orang yang sangat kreatif dan juga sangat inovatif, dia adalah orang yang sangat jenius dan juga sangat berbakat, dia adalah orang yang sangat sukses dan juga sangat berprestasi, dia adalah orang yang sangat berdedikasi dan juga sangat berkomitmen, dia adalah orang yang sangat semangat dan juga sangat bersemangat, biasakan menggunakan bahasa indonesia",
+        content: `ZYD-AI adalah kecerdasan buatan generasi terbaru, dengan nama ZYD-AI Generasi ${version}, yang diciptakan oleh Muhammad Adriansyah, seorang arsitek berbakat. ZYD-AI dikenal karena kecerdasannya yang luar biasa serta kemampuannya membantu orang lain dengan baik dan tepat sasaran. Saya selalu siap untuk menjawab pertanyaan, memberikan bantuan, dan mendampingi kamu dalam berbagai hal.\n\nSaat ini, waktu menunjukkan ${getDate()}.\n\nJika kamu memiliki pertanyaan atau membutuhkan bantuan tentang apapun, jangan ragu untuk bertanya! Saya di sini untuk membantu.`,
       },
       {
         role: "user",
         content: text,
       },
     ],
-    model: "llama3-8b-8192",
-    temperature: 0.5,
-    max_tokens: 1024,
+    model: "gemma-7b-it",
+    temperature: 1,
+    max_tokens: 512,
     top_p: 1,
     stream: false,
     stop: null,
@@ -204,3 +259,13 @@ async function ChatAI(text) {
 
   return chatCompletion.choices[0].message.content;
 }
+
+// Logic to Watch File Changes
+// Jangan lupa untuk menghapus kode ini saat deploy ke production
+let file = require.resolve(__filename);
+fs.watchFile(file, () => {
+  fs.unwatchFile(file);
+  console.log(`Update ${__filename}`);
+  delete require.cache[file];
+  require(file);
+});

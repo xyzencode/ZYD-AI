@@ -1,13 +1,13 @@
 {
-  "name": "gpt",
-  "version": "1.0.0",
-  "description": "This is a simple code chat ai with whatsapp bot",
-  "main": "index.js",
+  "name": "zyd-ai",
+  "version": "1.1.0",
+  "description": "Simple Code Chat AI With Whatsapp API Non Official",
+  "main": "handler.js",
   "scripts": {
-    "start": "node handler.js --qr"
+    "start": "node handler.js"
   },
   "keywords": [
-    "chagpt",
+    "chatgpt",
     "chatbot",
     "whatsapp",
     "zyd",
@@ -17,6 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.8",
+    "dotenv": "^16.4.5",
     "groq-sdk": "^0.7.0"
   },
   "devDependencies": {
